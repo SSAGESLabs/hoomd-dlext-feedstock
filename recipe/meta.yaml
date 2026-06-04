@@ -9,15 +9,16 @@ package:
 
 source:
   url: https://github.com/SSAGESLabs/hoomd-dlext/archive/refs/tags/v{{ version }}.tar.gz
-  sha256: c8295ce30c5f9df8a7549ea32b9dc193e7be48fdb5cba87cca4122846074c34e
+  sha256: e91f0317e53e683746db38640de6a5daa3b1fd5beb84ff96a01e1a81169c58ff
 
 build:
   number: 0
   # Upstream package does not support Windows, Python < 3.6, or PyPy
   skip: true  # [win or py<36 or python_impl == "pypy"]
-  skip: true  # [hoomd == "v2" and cuda_compiler_version != "None" and py>39]
-  skip: true  # [hoomd == "v2" and cuda_compiler_version == "None" and py>310]
-  skip: true  # [hoomd == "v3" and cuda_compiler_version not in ("11.2", "None")]
+  skip: true  # [hoomd == "v2" and py != 310]
+  skip: true  # [hoomd != "v2" and py != 311]
+  skip: true  # [hoomd == "v2" and cuda_compiler_version != "None"]
+  skip: true  # [hoomd == "v3" and cuda_compiler_version != "None"]
   string: {{ variant }}py{{ py }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
   script_env:
     - CUDA_MAJOR={{ cuda_major }}
@@ -28,22 +29,28 @@ build:
 
 requirements:
   build:
-    - {{ compiler('cxx') }}
-    - {{ stdlib("c") }}
+    - {{ compiler('cxx') }}   # [hoomd not in ("v3", "v4", "v5")]
+    - {{ stdlib("c") }}       # [hoomd not in ("v3", "v4", "v5")]
+    - cxx-compiler 1.5.2      # [hoomd == "v3"]
+    - cxx-compiler 1.8.0      # [hoomd in ("v4", "v5")]
     - {{ compiler('cuda') }}  # [linux64 and cuda_compiler_version != "None"]
     - cmake >=3.16,!=3.23.0
     - make
 
   host:
     - python
-    - pybind11
+    - pybind11 <3  # [hoomd in ("v3", "v4", "v5")]
+    - pybind11     # [hoomd not in ("v3", "v4", "v5")]
     - pybind11-abi
     - dlpack >=0.5
-    - eigen             # [hoomd != "v2"]
-    - hoomd ==2.9.6     # [hoomd == "v2" and cuda_compiler_version != "None"]
-    - hoomd >=2.9.6,<3  # [hoomd == "v2" and cuda_compiler_version == "None"]
-    - hoomd >=3.5,<4    # [hoomd == "v3"]
-    - hoomd >=4         # [hoomd == "v4"]
+    - eigen <5        # [hoomd in ("v3", "v4", "v5", "v6")]
+    - eigen           # [hoomd == "v7"]
+    - hoomd ==2.9.7   # [hoomd == "v2"]
+    - hoomd ==3.11.0  # [hoomd == "v3"]
+    - hoomd ==4.9.1   # [hoomd == "v4"]
+    - hoomd ==5.0.0   # [hoomd == "v5"]
+    - hoomd ==6.1.1   # [hoomd == "v6"]
+    - hoomd ==7.0.1   # [hoomd == "v7"]
     - setuptools-scm
     - tbb-devel
     {% if linux64 and cuda_major >= 12 %}
@@ -61,9 +68,8 @@ requirements:
 
   run:
     - python
-    - {{ pin_compatible('hoomd', upper_bound='2.9.7') }}  # [hoomd == "v2" and cuda_compiler_version != "None"]
-    - {{ pin_compatible('hoomd', max_pin='x.x') }}        # [hoomd == "v2" and cuda_compiler_version == "None"]
-    - {{ pin_compatible('hoomd', max_pin='x.x') }}        # [hoomd != "v2"]
+    - {{ pin_compatible('hoomd', max_pin='x.x') }}  # [hoomd == "v2"]
+    - {{ pin_compatible('hoomd', max_pin='x.x') }}  # [hoomd != "v2"]
 
 test:
   imports:
@@ -80,8 +86,8 @@ about:
   description: |
     Provides access to HOOMD-blue simulation data on CPU or GPU via DLPack.
     This project is primarily designed to enable access to HOOMD-blue for
-    the PySAGES project. At the moment, only HOOMD-blue version 2 is supported
-    (support HOOMD-blue version 3 is in the works).
+    the PySAGES project. The package is built against representative
+    HOOMD-blue releases from the v2 through v7 series.
 
   doc_url: https://github.com/SSAGESLabs/hoomd-dlext
   dev_url: https://github.com/SSAGESLabs/hoomd-dlext
