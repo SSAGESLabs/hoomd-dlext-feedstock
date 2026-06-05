@@ -7,6 +7,10 @@ rm -rf build || true
 CMAKE_FLAGS="  -DCMAKE_INSTALL_PREFIX=${PREFIX}"
 CMAKE_FLAGS+=" -DCMAKE_BUILD_TYPE=Release"
 
+if [[ "$HOOMD_TAG" == v2 ]]; then
+    CMAKE_FLAGS+=" -DCMAKE_POLICY_VERSION_MINIMUM=3.5"
+fi
+
 if [ -z "${PYTHON+x}" ]; then
     PYTHON="${PREFIX}/bin/python"
 fi

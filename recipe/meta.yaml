@@ -52,7 +52,8 @@ requirements:
     - hoomd ==6.1.1   # [hoomd == "v6"]
     - hoomd ==7.0.1   # [hoomd == "v7"]
     - setuptools-scm
-    - tbb-devel
+    - tbb-devel <2022  # [hoomd == "v3"]
+    - tbb-devel        # [hoomd != "v3"]
     {% if linux64 and cuda_major >= 12 %}
     # CUDA dependencies (we don't really need all of them, but HOOMD checks that they are present)
     - cuda-version {{ cuda_compiler_version }}
@@ -68,8 +69,7 @@ requirements:
 
   run:
     - python
-    - {{ pin_compatible('hoomd', max_pin='x.x') }}  # [hoomd == "v2"]
-    - {{ pin_compatible('hoomd', max_pin='x.x') }}  # [hoomd != "v2"]
+    - {{ pin_compatible('hoomd', max_pin='x.x') }}
 
 test:
   imports:
