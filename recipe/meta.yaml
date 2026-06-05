@@ -1,7 +1,6 @@
-{% set version = "0.5.0" %}
+{% set version = "0.6.0" %}
 {% set cuda_major = (cuda_compiler_version | default("0.0", true)).split(".")[0] | int %}
-{% set variant = ("cuda" ~ cuda_major ~ "_") if cuda_major != 0 else "" %}
-{% set variant = hoomd ~ "_" ~ variant %}
+{% set variant = hoomd ~ "_" ~ ("cuda" ~ cuda_major ~ "_" if cuda_major != 0 else "") %}
 
 package:
   name: hoomd-dlext
@@ -9,15 +8,12 @@ package:
 
 source:
   url: https://github.com/SSAGESLabs/hoomd-dlext/archive/refs/tags/v{{ version }}.tar.gz
-  sha256: 3521af38138b2ecf637a5888d81c0af2960fce2da96bb8982d0d023da23ba319
+  sha256: e91f0317e53e683746db38640de6a5daa3b1fd5beb84ff96a01e1a81169c58ff
 
 build:
-  number: 1
+  number: 0
   # Upstream package does not support Windows, Python < 3.6, or PyPy
-  skip: true  # [win or py<36 or python_impl == "pypy"]
-  skip: true  # [hoomd == "v2" and cuda_compiler_version != "None" and py>39]
-  skip: true  # [hoomd == "v2" and cuda_compiler_version == "None" and py>310]
-  skip: true  # [hoomd == "v3" and cuda_compiler_version not in ("11.2", "None")]
+  skip: true  # [win or py<36 or python_impl == "pypy" or (hoomd == "v2" and py != 310) or (hoomd != "v2" and py != 311) or (hoomd in ("v2", "v3") and cuda_compiler_version != "None")]
   string: {{ variant }}py{{ py }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
   script_env:
     - CUDA_MAJOR={{ cuda_major }}
@@ -28,41 +24,46 @@ build:
 
 requirements:
   build:
-    - {{ compiler('cxx') }}
+    - {{ compiler('cxx') }}   # [hoomd not in ("v3", "v4", "v5")]
+    - {{ stdlib("c") }}       # [hoomd not in ("v3", "v4", "v5")]
+    - cxx-compiler 1.5.2      # [hoomd == "v3"]
+    - cxx-compiler 1.8.0      # [hoomd in ("v4", "v5")]
     - {{ compiler('cuda') }}  # [linux64 and cuda_compiler_version != "None"]
+    - libcxx-devel 16.0.6.*   # [osx and hoomd == "v3"]
     - cmake >=3.16,!=3.23.0
     - make
 
   host:
     - python
-    - pybind11
+    - pybind11 <3  # [hoomd in ("v2", "v3", "v4", "v5")]
+    - pybind11     # [hoomd in ("v6", "v7")]
     - pybind11-abi
     - dlpack >=0.5
-    - eigen             # [hoomd != "v2"]
-    - hoomd ==2.9.6     # [hoomd == "v2" and cuda_compiler_version != "None"]
-    - hoomd >=2.9.6,<3  # [hoomd == "v2" and cuda_compiler_version == "None"]
-    - hoomd >=3.5,<4    # [hoomd == "v3"]
-    - hoomd >=4         # [hoomd == "v4"]
+    - eigen <5             # [hoomd in ("v3", "v4", "v5", "v6")]
+    - eigen                # [hoomd == "v7"]
+    - hoomd ==2.9.7 cpu_*  # [hoomd == "v2"]
+    - hoomd ==3.11.0       # [hoomd == "v3"]
+    - hoomd ==4.9.1        # [hoomd == "v4"]
+    - hoomd ==5.0.0        # [hoomd == "v5"]
+    - hoomd ==6.1.1        # [hoomd == "v6"]
+    - hoomd ==7.0.1        # [hoomd == "v7"]
     - setuptools-scm
-    - tbb-devel
-    {% if linux64 and cuda_major >= 12 %}
+    - tbb-devel <2022  # [hoomd == "v3"]
+    - tbb-devel        # [hoomd != "v3"]
     # CUDA dependencies (we don't really need all of them, but HOOMD checks that they are present)
-    - cuda-version {{ cuda_compiler_version }}
-    - cuda-cudart-dev
-    - cuda-driver-dev
-    - cuda-nvrtc-dev
-    - cuda-profiler-api
-    - libcublas-dev
-    - libcufft-dev
-    - libcusolver-dev
-    - libcusparse-dev
-    {% endif %}
+    - cuda-version {{ cuda_compiler_version }}  # [linux64 and cuda_compiler_version != "None"]
+    - cuda-cudart-dev    # [linux64 and cuda_compiler_version != "None"]
+    - cuda-driver-dev    # [linux64 and cuda_compiler_version != "None"]
+    - cuda-nvrtc-dev     # [linux64 and cuda_compiler_version != "None"]
+    - cuda-profiler-api  # [linux64 and cuda_compiler_version != "None"]
+    - libcublas-dev      # [linux64 and cuda_compiler_version != "None"]
+    - libcufft-dev       # [linux64 and cuda_compiler_version != "None"]
+    - libcusolver-dev    # [linux64 and cuda_compiler_version != "None"]
+    - libcusparse-dev    # [linux64 and cuda_compiler_version != "None"]
 
   run:
     - python
-    - {{ pin_compatible('hoomd', upper_bound='2.9.7') }}  # [hoomd == "v2" and cuda_compiler_version != "None"]
-    - {{ pin_compatible('hoomd', max_pin='x.x') }}        # [hoomd == "v2" and cuda_compiler_version == "None"]
-    - {{ pin_compatible('hoomd', max_pin='x.x') }}        # [hoomd != "v2"]
+    - {{ pin_compatible('hoomd', max_pin='x.x') }}
 
 test:
   imports:
@@ -79,8 +80,8 @@ about:
   description: |
     Provides access to HOOMD-blue simulation data on CPU or GPU via DLPack.
     This project is primarily designed to enable access to HOOMD-blue for
-    the PySAGES project. At the moment, only HOOMD-blue version 2 is supported
-    (support HOOMD-blue version 3 is in the works).
+    the PySAGES project. The package is built against representative
+    HOOMD-blue releases from the v2 through v7 series.
 
   doc_url: https://github.com/SSAGESLabs/hoomd-dlext
   dev_url: https://github.com/SSAGESLabs/hoomd-dlext

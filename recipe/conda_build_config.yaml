@@ -1,12 +1,31 @@
-MACOSX_DEPLOYMENT_TARGET:  # [osx and x86_64]
-  - "10.14"                # [osx and x86_64]
-MACOSX_SDK_VERSION:        # [osx and x86_64]
-  - "10.14"                # [osx and x86_64]
-
-cxx_compiler_version:  # [osx]
-  - 14                 # [osx]
-
 hoomd:
   - v2
   - v3
   - v4
+  - v5
+  - v6
+  - v7
+
+python:
+  - 3.10.* *_cpython
+  - 3.11.* *_cpython
+
+is_python_min:
+  - true
+  - false
+
+pybind11_abi:
+  - 4
+  - 4
+  - 4
+  - 4
+  - 11
+  - 11
+
+zip_keys:
+  -
+    - python
+    - is_python_min
+  -
+    - hoomd
+    - pybind11_abi
