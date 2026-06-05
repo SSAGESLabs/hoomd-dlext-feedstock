@@ -1,7 +1,6 @@
 {% set version = "0.6.0" %}
 {% set cuda_major = (cuda_compiler_version | default("0.0", true)).split(".")[0] | int %}
-{% set variant = ("cuda" ~ cuda_major ~ "_") if cuda_major != 0 else "" %}
-{% set variant = hoomd ~ "_" ~ variant %}
+{% set variant = hoomd ~ "_" ~ ("cuda" ~ cuda_major ~ "_" if cuda_major != 0 else "") %}
 
 package:
   name: hoomd-dlext
@@ -14,11 +13,7 @@ source:
 build:
   number: 0
   # Upstream package does not support Windows, Python < 3.6, or PyPy
-  skip: true  # [win or py<36 or python_impl == "pypy"]
-  skip: true  # [hoomd == "v2" and py != 310]
-  skip: true  # [hoomd != "v2" and py != 311]
-  skip: true  # [hoomd == "v2" and cuda_compiler_version != "None"]
-  skip: true  # [hoomd == "v3" and cuda_compiler_version != "None"]
+  skip: true  # [win or py<36 or python_impl == "pypy" or (hoomd == "v2" and py != 310) or (hoomd != "v2" and py != 311) or (hoomd in ("v2", "v3") and cuda_compiler_version != "None")]
   string: {{ variant }}py{{ py }}_h{{ PKG_HASH }}_{{ PKG_BUILDNUM }}
   script_env:
     - CUDA_MAJOR={{ cuda_major }}
@@ -34,38 +29,37 @@ requirements:
     - cxx-compiler 1.5.2      # [hoomd == "v3"]
     - cxx-compiler 1.8.0      # [hoomd in ("v4", "v5")]
     - {{ compiler('cuda') }}  # [linux64 and cuda_compiler_version != "None"]
+    - libcxx-devel 16.0.6.*   # [osx and hoomd == "v3"]
     - cmake >=3.16,!=3.23.0
     - make
 
   host:
     - python
-    - pybind11 <3  # [hoomd in ("v3", "v4", "v5")]
-    - pybind11     # [hoomd not in ("v3", "v4", "v5")]
+    - pybind11 <3  # [hoomd in ("v2", "v3", "v4", "v5")]
+    - pybind11     # [hoomd in ("v6", "v7")]
     - pybind11-abi
     - dlpack >=0.5
-    - eigen <5        # [hoomd in ("v3", "v4", "v5", "v6")]
-    - eigen           # [hoomd == "v7"]
-    - hoomd ==2.9.7   # [hoomd == "v2"]
-    - hoomd ==3.11.0  # [hoomd == "v3"]
-    - hoomd ==4.9.1   # [hoomd == "v4"]
-    - hoomd ==5.0.0   # [hoomd == "v5"]
-    - hoomd ==6.1.1   # [hoomd == "v6"]
-    - hoomd ==7.0.1   # [hoomd == "v7"]
+    - eigen <5             # [hoomd in ("v3", "v4", "v5", "v6")]
+    - eigen                # [hoomd == "v7"]
+    - hoomd ==2.9.7 cpu_*  # [hoomd == "v2"]
+    - hoomd ==3.11.0       # [hoomd == "v3"]
+    - hoomd ==4.9.1        # [hoomd == "v4"]
+    - hoomd ==5.0.0        # [hoomd == "v5"]
+    - hoomd ==6.1.1        # [hoomd == "v6"]
+    - hoomd ==7.0.1        # [hoomd == "v7"]
     - setuptools-scm
     - tbb-devel <2022  # [hoomd == "v3"]
     - tbb-devel        # [hoomd != "v3"]
-    {% if linux64 and cuda_major >= 12 %}
     # CUDA dependencies (we don't really need all of them, but HOOMD checks that they are present)
-    - cuda-version {{ cuda_compiler_version }}
-    - cuda-cudart-dev
-    - cuda-driver-dev
-    - cuda-nvrtc-dev
-    - cuda-profiler-api
-    - libcublas-dev
-    - libcufft-dev
-    - libcusolver-dev
-    - libcusparse-dev
-    {% endif %}
+    - cuda-version {{ cuda_compiler_version }}  # [linux64 and cuda_compiler_version != "None"]
+    - cuda-cudart-dev    # [linux64 and cuda_compiler_version != "None"]
+    - cuda-driver-dev    # [linux64 and cuda_compiler_version != "None"]
+    - cuda-nvrtc-dev     # [linux64 and cuda_compiler_version != "None"]
+    - cuda-profiler-api  # [linux64 and cuda_compiler_version != "None"]
+    - libcublas-dev      # [linux64 and cuda_compiler_version != "None"]
+    - libcufft-dev       # [linux64 and cuda_compiler_version != "None"]
+    - libcusolver-dev    # [linux64 and cuda_compiler_version != "None"]
+    - libcusparse-dev    # [linux64 and cuda_compiler_version != "None"]
 
   run:
     - python
